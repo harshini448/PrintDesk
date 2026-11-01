@@ -105,6 +105,25 @@ const initializeDatabase = async () => {
       )
     `);
 
+    // Create users table for student registration and login
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        registration_number VARCHAR(100) UNIQUE NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        department VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Create unique case-insensitive index on registration_number to prevent duplicates
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_users_reg_number ON users (LOWER(TRIM(registration_number)))
+    `);
+
     // Create admin_users table
     await client.query(`
       CREATE TABLE IF NOT EXISTS admin_users (
@@ -156,6 +175,13 @@ const initializeDatabase = async () => {
         ('paytm_merchant_key', '', 'Paytm merchant key'),
         ('paytm_environment', 'TEST', 'Paytm environment (TEST/PROD)')
       ON CONFLICT (setting_key) DO NOTHING
+    `);
+
+    // Insert default admin user if not exists
+    await client.query(`
+      INSERT INTO admin_users (username, password_hash, email, role, is_active)
+      VALUES ('admin', 'admin123', 'admin@printdesk.edu', 'admin', true)
+      ON CONFLICT (username) DO NOTHING
     `);
 
     // Create indexes for better performance

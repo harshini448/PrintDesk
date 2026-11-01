@@ -1,8 +1,11 @@
 import axios from 'axios';
 
+const rawBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const baseURL = rawBaseUrl.endsWith('/api') ? rawBaseUrl : `${rawBaseUrl.replace(/\/+$/, '')}/api`;
+
 // Create axios instance with default configuration
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5001/api',
+  baseURL,
   timeout: 30000, // 30 seconds
   headers: {
     'Content-Type': 'application/json',
@@ -12,9 +15,18 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('adminToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (config.headers?.Authorization) {
+      return config;
+    }
+    const adminToken = localStorage.getItem('adminToken');
+    const studentToken = localStorage.getItem('studentToken');
+
+    if (config.url?.includes('student-')) {
+      if (studentToken) config.headers.Authorization = `Bearer ${studentToken}`;
+    } else if (adminToken) {
+      config.headers.Authorization = `Bearer ${adminToken}`;
+    } else if (studentToken) {
+      config.headers.Authorization = `Bearer ${studentToken}`;
     }
     return config;
   },
@@ -30,9 +42,13 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      // Unauthorized - clear token and redirect to login
+      // Unauthorized - clear token
       localStorage.removeItem('adminToken');
-      window.location.href = '/admin';
+      // Avoid reload loops if already on admin pages
+      const path = window.location.pathname;
+      if (!path.startsWith('/admin') && path !== '/admin-login') {
+        window.location.href = '/admin';
+      }
     }
     return Promise.reject(error);
   }
@@ -43,6 +59,9 @@ export const endpoints = {
   // Auth
   login: '/auth/login',
   validateToken: '/auth/validate',
+  studentRegister: '/auth/student-register',
+  studentLogin: '/auth/student-login',
+  studentMe: '/auth/student-me',
   
   // Print Job
   createPrintJob: '/print-job',
@@ -73,6 +92,9 @@ export const apiService = {
   // Auth
   login: (credentials) => api.post(endpoints.login, credentials),
   validateToken: () => api.get(endpoints.validateToken),
+  studentRegister: (data) => api.post(endpoints.studentRegister, data),
+  studentLogin: (credentials) => api.post(endpoints.studentLogin, credentials),
+  getStudentProfile: () => api.get(endpoints.studentMe),
   
   // Print Job
   createPrintJob: (jobData) => api.post(endpoints.createPrintJob, jobData),

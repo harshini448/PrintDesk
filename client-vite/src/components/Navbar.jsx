@@ -2,11 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaUser,  FaSignOutAlt ,FaUserGraduate} from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
+import { useAdminAuth } from '../context/AdminAuthContext';
 import logo from './nialogo-removebg-preview.png';
 import './Navbar.css'; // Ensure you have the correct path to your CSS file
 
 const NavigationBar = () => {
   const { isAuthenticated, user, logout } = useAuth();
+  const { admin } = useAdminAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -41,6 +43,50 @@ const NavigationBar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
+  // Hide the public navbar on the admin dashboard when logged in (called AFTER all hooks)
+  if (location.pathname === '/admin' && admin) {
+    return null;
+  }
+
+  // Dedicated Student Navbar when authenticated
+  if (isAuthenticated && user) {
+    return (
+      <nav
+        ref={navRef}
+        className={`navbar student-navbar ${navVisible ? 'visible' : 'hidden'}`}
+        style={{
+          transform: navVisible ? 'translateY(0)' : 'translateY(-100%)',
+          transition: 'transform 0.3s ease-in-out',
+        }}
+      >
+        <div className="student-nav-container">
+          {/* Left side: NIA Logo */}
+          <Link to="/" className="student-nav-brand" title="PrintDesk Home">
+            <img src={logo} alt="NIA Logo" className="student-nav-logo" />
+          </Link>
+
+          {/* Middle: Student name with welcome greeting */}
+          <div className="student-nav-welcome">
+            <span className="welcome-tag">Welcome back,</span>
+            <span className="welcome-user-name">{user.name}</span>
+          </div>
+
+          {/* Right side: Logout button */}
+          <div className="student-nav-actions">
+            <button
+              onClick={handleLogout}
+              className="student-nav-logout-btn"
+              title="Logout from PrintDesk"
+            >
+              <FaSignOutAlt className="logout-icon" />
+              <span className="logout-text">Logout</span>
+            </button>
+          </div>
+        </div>
+      </nav>
+    );
+  }
+
   return (
     <>
       <nav
@@ -63,14 +109,19 @@ const NavigationBar = () => {
                   <span className="link-text">Home</span>
                   <span className="link-underline"></span>
                 </Link>
-                <Link to="/print-job" className="nav-link" onClick={handleNavClick}>
-                  <span className="link-text">Print Job</span>
-                  <span className="link-underline"></span>
-                </Link>
-                <Link to="/tracking" className="nav-link" onClick={handleNavClick}>
-                  <span className="link-text">Track Order</span>
-                  <span className="link-underline"></span>
-                </Link>
+
+                {isAuthenticated && user && (
+                  <>
+                    <Link to="/print-job" className="nav-link" onClick={handleNavClick}>
+                      <span className="link-text">Print Job</span>
+                      <span className="link-underline"></span>
+                    </Link>
+                    <Link to="/tracking" className="nav-link" onClick={handleNavClick}>
+                      <span className="link-text">Track Order</span>
+                      <span className="link-underline"></span>
+                    </Link>
+                  </>
+                )}
 
                 <div
                   className="nav-dropdown"
@@ -91,9 +142,33 @@ const NavigationBar = () => {
                 </div>
                 <Link to="/faculty-login"  className="nav-link" onClick={handleNavClick}>
                     < FaUserGraduate className="user-icon" />
-                    <span>Faculty</span>
+                    <span>Departments</span>
                     <span className="link-underline"></span>
-                  </Link>
+                </Link>
+
+                {isAuthenticated && user && (
+                  <div className="nav-user-badge" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-dark)' }}>
+                      Hi, {user.name?.split(' ')[0]}
+                    </span>
+                    <button
+                      onClick={handleLogout}
+                      title="Logout"
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid rgba(218, 182, 106, 0.45)',
+                        borderRadius: '6px',
+                        padding: '3px 8px',
+                        color: 'var(--secondary-color)',
+                        cursor: 'pointer',
+                        fontSize: '0.82rem',
+                        fontWeight: 600
+                      }}
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -115,12 +190,16 @@ const NavigationBar = () => {
             <Link to="/" className="mobile-nav-link" onClick={handleNavClick}>
               Home
             </Link>
-            <Link to="/print-job" className="mobile-nav-link" onClick={handleNavClick}>
-              Print Job
-            </Link>
-            <Link to="/tracking" className="mobile-nav-link" onClick={handleNavClick}>
-              Track Order
-            </Link>
+            {isAuthenticated && user && (
+              <>
+                <Link to="/print-job" className="mobile-nav-link" onClick={handleNavClick}>
+                  Print Job
+                </Link>
+                <Link to="/tracking" className="mobile-nav-link" onClick={handleNavClick}>
+                  Track Order
+                </Link>
+              </>
+            )}
             <div className="mobile-auth-section">
               {isAuthenticated ? (
                 <button className="mobile-nav-button" onClick={handleLogout}>
@@ -133,7 +212,7 @@ const NavigationBar = () => {
               )}
             </div>
             <Link to="/faculty-login" className="mobile-nav-button" onClick={handleNavClick}>
-                  <FaUserGraduate className="user-icon" /> Faculty Login
+                  <FaUserGraduate className="user-icon" /> Departments Login
              </Link>
           </div>
         </div>

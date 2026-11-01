@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 
 // Import components
@@ -14,6 +14,7 @@ import NotFound from './pages/NotFound.jsx';
 import Faculty from './pages/Facultylogin.jsx';
 import ThankYou2 from './pages/ThankYou2.jsx';
 import PrintJob2 from './pages/Printjob2.jsx';
+import AuthPage from './pages/AuthPage.jsx';
 
 // Import contexts
 import { useAuth } from './context/AuthContext.jsx';
@@ -30,7 +31,8 @@ function App() {
 }
 
 function AppContent() {
-  const { admin } = useAdminAuth();
+  const { admin, loading } = useAdminAuth();
+  const { user, loading: userLoading } = useAuth();
 
   return (
     <div className="App">
@@ -44,20 +46,56 @@ function AppContent() {
       <main className="container-fluid p-0">
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/print-job" element={<PrintJob />} />
+          <Route path="/login" element={<AuthPage />} />
+          <Route path="/register" element={<AuthPage />} />
+          <Route 
+            path="/print-job" 
+            element={user ? <PrintJob /> : (userLoading ? null : <Navigate to="/" replace />)} 
+          />
           <Route path="/thank-you" element={<ThankYou />} />
-          <Route path="/tracking" element={<Tracking />} />
+          <Route 
+            path="/tracking" 
+            element={user ? <Tracking /> : (userLoading ? null : <Navigate to="/" replace />)} 
+          />
           <Route 
             path="/admin-login" 
-            element={<AdminLogin />}
+            element={admin ? <Admin /> : <AdminLogin />}
           />
           <Route 
             path="/admin" 
             element={
-              admin ? <Admin /> : <AdminLogin />
+              loading ? (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  minHeight: '80vh',
+                  color: '#4a5568',
+                  fontSize: '1.1rem',
+                  fontWeight: 500
+                }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    border: '4px solid #e2e8f0',
+                    borderTop: '4px solid #3b82f6',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                    marginBottom: '1rem'
+                  }} />
+                  <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+                  Loading Admin Portal...
+                </div>
+              ) : admin ? (
+                <Admin />
+              ) : (
+                <AdminLogin />
+              )
             } 
           />
           <Route path="/faculty-login" element={<Faculty />} />
+          <Route path="/departments-login" element={<Faculty />} />
           <Route path="*" element={<NotFound />} />
           <Route path="/thank-you2" element={<ThankYou2 />} />
           
